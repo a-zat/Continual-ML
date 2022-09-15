@@ -1,1 +1,4 @@
-tensorflow
+tensorflow #
+sklearn # For kmeans
+pandas  # For dataframes 
+
