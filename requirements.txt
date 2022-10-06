@@ -1,4 +1,5 @@
 tensorflow #
-sklearn # For kmeans
-pandas  # For dataframes 
+sklearn # Kmeans
+pandas  # Dataframes 
 
+seaborn # statistical data visualization 
