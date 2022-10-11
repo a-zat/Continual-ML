@@ -8,9 +8,11 @@ from sklearn.metrics import classification_report
 
 def ComputeEvalMetrics(true_label, pred_label):
 
-    confusion = confusion_matrix(true_label, pred_label)
-    print('Confusion Matrix\n')
-    print(confusion)
+    # IMPORTARE CONFUSION MATRIX CUSTOM-MADE 
+
+    #confusion = confusion_matrix(true_label, pred_label)
+    #print('Confusion Matrix\n')
+    #print(confusion)
 
     print('\nAccuracy: {:.2f}\n'.format(accuracy_score(true_label, pred_label)))
 
