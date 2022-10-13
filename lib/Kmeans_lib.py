@@ -150,7 +150,7 @@ def cluster_to_label(clusters_features, labels_features, cluster_list, labels_in
   # 2: Find max in each row -> cluster corresponding to each label
   map_idx = np.argmax(cmtx, axis = 1)  
 
-  print(map_idx)
+  # print(map_idx)
 
   # Fill dictionary with map
   map_clu2lbl = {}

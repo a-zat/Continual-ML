@@ -1,12 +1,12 @@
 # import numpy as np
-# from lib.Kmeans_lib import *
+from lib.Kmeans_lib import confusion_matrix
 
 # from sklearn.metrics import confusion_matrix
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
 from sklearn.metrics import classification_report
 
 
-def ComputeEvalMetrics(true_label, pred_label):
+def ComputeEvalMetrics(true_label, pred_label, cluster_list, labels_list):
 
     # IMPORTARE CONFUSION MATRIX CUSTOM-MADE 
 
@@ -15,11 +15,14 @@ def ComputeEvalMetrics(true_label, pred_label):
 
 
 
-    
 
-    #confusion = confusion_matrix(true_label, pred_label)
-    #print('Confusion Matrix\n')
-    #print(confusion)
+
+    confusion = confusion_matrix(true_label, pred_label, cluster_list, labels_list)
+    print('Confusion Matrix\n')
+    print(confusion)
+
+
+
 
     print('\nAccuracy: {:.2f}\n'.format(accuracy_score(true_label, pred_label)))
 
