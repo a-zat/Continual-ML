@@ -3,7 +3,7 @@ PARAMETERS SAVED FROM THE TRAINING
  This model has been trained for learning the first 6 digits from the MNIST dataset, this is the FROZEN MODEL
 
  Batch size:       32
- Epochs:           40
+ Epochs:           10
  Metrics:          ['accuracy']
  Optimizer:        adam
  Loss:             SparseCategoricalCrossentropy 
