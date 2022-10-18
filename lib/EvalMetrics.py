@@ -17,9 +17,9 @@ def ComputeEvalMetrics(true_label, pred_label, cluster_list, labels_list):
 
 
 
-    confusion = confusion_matrix(true_label, pred_label, cluster_list, labels_list)
-    print('Confusion Matrix\n')
-    print(confusion)
+    # confusion = confusion_matrix(true_label, pred_label, cluster_list, labels_list)
+    # print('Confusion Matrix\n')
+    # print(confusion)
 
 
 

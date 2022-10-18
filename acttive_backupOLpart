@@ -1,0 +1,150 @@
+def run_frozen():
+    pass
+
+def update_active_layer():
+    pass
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+def trainOneEpoch_OL(model, image_train, image_test, label_train, label_test, features_saved, labels_features_saved, batch_size):
+    
+    cntr = 1 #  A COSA SERVE?
+    learn_rate = model.l_rate
+    
+    train_samples = x_train.shape[0]
+    test_samples = x_test.shape[0]
+    tot_samples = train_samples + test_samples
+    
+    # Merge train and test arrays
+    x_tot = np.concatenate((image_train, image_test))   # Images
+    y_tot = np.concatenate((label_train, label_test))   # Labels
+    
+    n_cluster = 10
+    err_tot = 0
+    cntr_clus = 0
+    reminder = tot_samples%batch_size
+    max_iter = int(tot_samples//batch_size)
+
+    features_images = np.zeros(tot_samples)
+        
+    # FEATURE EXTRACTION
+    # Estrae le features per ciascuna immagine utilizzando il Frozen Model
+    print('**********************************\n Performing features extraction \n')
+
+    for i in range(0, tot_samples):
+        features = model.ML_frozen.predict(x_tot[i].reshape((1,28,28,1)), verbose = False)
+
+        if i == 0:
+          features_images = np.copy(features)       
+        else:
+          features_images = np.concatenate((features_images, features))
+
+    # CLUSTERING
+    print('**********************************\n Performing clustering\n')
+
+    # Pseudo-labels
+    for i in range(0, max_iter):
+      
+        # pseudo_label, err = k_mean_clustering(features_images[i*batch_size:i*batch_size+batch_size], features_saved, y_tot[i*batch_size:i*batch_size+batch_size], labels_features, n_cluster, batch_size)
+        pseudo_label, err = k_mean_clustering(features_images[i*batch_size:i*batch_size+batch_size], features_saved, y_tot[i*batch_size:i*batch_size+batch_size], labels_features_saved, n_cluster, batch_size)
+       
+        err_tot += err
+        pseudo_label = pseudo_label.astype(int)
+
+        if i == 0:
+          pseudo_labels = np.copy(pseudo_label)      
+        else:
+          pseudo_labels = np.append(pseudo_labels, pseudo_label)
+
+        #print(f"\r    Currently at {np.round(np.round(cntr_clus/tot_samples*batch_size,4)*100,2)}% of dataset", end="")
+        #print("\n")
+        cntr_clus +=1
+
+        # k_mean_clustering(features_run, features_saved, labels_features_run, labels_features_saved, n_cluster, batch_size):
+    
+    # Pseudo-labels for last batch
+    
+    if reminder != 0: 
+        pseudo_label, err = k_mean_clustering(features_images[max_iter*batch_size:tot_samples], features, y_tot[max_iter*batch_size:tot_samples], labels_features_saved, n_cluster, reminder)
+        err_tot = err_tot + err
+        pseudo_labels = np.append(pseudo_labels, pseudo_label)
+
+    # Check pseudo-labels and errors in clustering
+    
+    #print("Pseudo_labels vector: ")
+    #print(pseudo_labels)
+    #print("\n")
+
+    print("The error in clustering is: ")
+    print(int(err_tot/tot_samples*100), '%')
+    print("errors:", err_tot)
+    print("tot samples", tot_samples)
+
+    # ONLINE-LEARNING
+
+    print('**********************************\n Performing training with OL\n')
+
+    for i in range(0, tot_samples):
+
+        CheckLabelKnown(model, pseudo_labels[i])
+    
+        y_true_soft = DigitToSoftmax(pseudo_labels[i], model.label)
+               
+        # Prediction
+        
+        y_pred = model.predict(features_images[i,:])
+        
+        # Backpropagation
+        cost = y_pred-y_true_soft
+        
+        for j in range(0,model.W.shape[0]):
+
+            # Update weights
+            dW = np.multiply(cost, features_images[i,j]*learn_rate)
+            model.W[j,:] = model.W[j,:]-dW
+
+        # Update biases
+        db      = np.multiply(cost, learn_rate)
+        model.b = model.b-db
+           
+        # the next part is only to plot the confusion matrix
+        # if the train data is finished still train the model but do not save the results
+        if(i>=train_samples):
+
+            y_true_soft = DigitToSoftmax(y_tot[i], model.label)
+                   
+            # Find the max iter for both true label and prediction
+            if(np.amax(y_true_soft) != 0):
+                max_i_true = np.argmax(y_true_soft)
+
+            if(np.amax(y_pred) != 0):
+                max_i_pred = np.argmax(y_pred)
+
+            # Fill up the confusion matrix
+            #for k in range(0,len(model.label)):
+            #    if(model.label[max_i_pred] == model.std_label[k]):
+            #        p = np.copy(k)
+            #    if(model.label[max_i_true] == model.std_label[k]):
+            #        t = np.copy(k)
+            #
+            #model.conf_matr[t,p] += 1  
+
+        # ComputeEvalMetrics(true_label, y_pred, labels_list)
+
+        
+
+        #print(f"\r    Currently at {np.round(np.round(cntr/tot_samples,4)*100,2)}% of dataset", end="")
+        #print("\n")
+        #cntr +=1
