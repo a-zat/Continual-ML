@@ -6,6 +6,7 @@ from tensorflow import keras
 
 import time
 import numpy as np
+from lib.EvalMetrics import *
 
 #def cluster_label_count(clusters, labels):
  #   count = {}
@@ -77,27 +78,7 @@ def DigitToSoftmax(current_label, known_labels):
 
 
 
-''' Function to check if the current label is already known to the model. If not it augments the custom layer adding a new node'''
-def CheckLabelKnown(model, current_label):
-    
-    found = False
-    
-    for i in range(0, len(model.label)):
-        if(current_label == model.label[i]):
-            found = True
-          
-    # If the label is not known
-    if not found:
-        print(f'\n\n    New digit detected -> digit \033[1m{current_label}\033[0m \n')
 
-        model.label.append(current_label)   # Add new digit to label
-                
-        # Increase weights and biases dimensions
-        model.W = np.hstack((model.W, np.zeros([model.W.shape[0],1])))
-        model.b = np.hstack((model.b, np.zeros([1])))
-        
-        model.W_2 = np.hstack((model.W_2, np.zeros([model.W.shape[0],1])))
-        model.b_2 = np.hstack((model.b_2, np.zeros([1])))
 
 
 ''' Function that initializes a KMean clustering object and trains it on the dataset provided'''
@@ -125,8 +106,11 @@ def create_k_mean(data, number_of_clusters, verbose = False):
     return k
 
 
+
+  
+
 '''Function to compute confusion matrix between cluster and labels'''
-def confusion_matrix(clusters_features_saved, labels_features_saved_init, cluster_list, labels_list):
+def confusion_matrix2(clusters_features_saved, labels_features_saved_init, cluster_list, labels_list):
 
   cmtx = np.zeros([len(labels_list), len(cluster_list)])
 
@@ -145,7 +129,7 @@ def confusion_matrix(clusters_features_saved, labels_features_saved_init, cluste
 def cluster_to_label(clusters_features, labels_features, cluster_list, labels_init_list):
 
   # 1: Compute Confusion matrix (for the saved features)
-  cmtx = confusion_matrix(clusters_features, labels_features, cluster_list, labels_init_list)
+  cmtx = confusion_matrix2(clusters_features, labels_features, cluster_list, labels_init_list)
 
   # 2: Find max in each row -> cluster corresponding to each label
   map_idx = np.argmax(cmtx, axis = 1)  
