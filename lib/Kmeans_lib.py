@@ -67,6 +67,8 @@ def DigitToSoftmax(current_label, known_labels):
 
     return ret_ary  
 
+
+
 #def NumberToSoftmax(current_label, known_labels):
 #    ret_ary = np.zeros(len(known_labels))
 #                     
@@ -75,11 +77,6 @@ def DigitToSoftmax(current_label, known_labels):
 #            ret_ary[i] = 1
 #
 #    return ret_ary
-
-
-
-
-
 
 ''' Function that initializes a KMean clustering object and trains it on the dataset provided'''
 def create_k_mean(data, number_of_clusters, verbose = False):
@@ -106,9 +103,6 @@ def create_k_mean(data, number_of_clusters, verbose = False):
     return k
 
 
-
-  
-
 '''Function to compute confusion matrix between cluster and labels'''
 def confusion_matrix2(clusters_features_saved, labels_features_saved_init, cluster_list, labels_list):
 
@@ -125,6 +119,7 @@ def confusion_matrix2(clusters_features_saved, labels_features_saved_init, clust
     cmtx[m,n] += 1
   return cmtx
 
+
 '''Function to map the cluster index with the pseudo labels. The function must be run only on the saved_dataset'''
 def cluster_to_label(clusters_features, labels_features, cluster_list, labels_init_list):
 
@@ -134,12 +129,9 @@ def cluster_to_label(clusters_features, labels_features, cluster_list, labels_in
   # 2: Find max in each row -> cluster corresponding to each label
   map_idx = np.argmax(cmtx, axis = 1)  
 
-  # print(map_idx)
-
   # Fill dictionary with map
   map_clu2lbl = {}
   map_lbl2clu = {}
-  # labels_init_list_sorted = labels_init_list.sort()
   labels_init_list.sort()
   for i in range(0, len(map_idx)):
     map_clu2lbl[map_idx[i]] = labels_init_list[i]
@@ -148,13 +140,6 @@ def cluster_to_label(clusters_features, labels_features, cluster_list, labels_in
   # Mapping dictionary
   # map_clu2lbl -> cluster: label
   # map_lbl2clu -> label: cluster
-
-  #print("LABEL: CLUSTER", map_lbl2clu)
-  #print("CLUSTER: LABEL", map_clu2lbl)
-
-  # DEBUG
-  #if len(map_clu2lbl) < 10:
-  #  print(cmtx)
 
   return map_clu2lbl, map_lbl2clu
 
