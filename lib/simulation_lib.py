@@ -19,61 +19,6 @@ import seaborn as sns
 # |_| /_/   \_\_| \_\____/|_____|
 
 
-""" Given an original dataset this function will generate a smaller dataset that contains NUM samples for each label """
-def extract_tot_samples(data_low, data_high, label_low, label_high, num):
-    
-    digits_0 = data_low[np.where(label_low==0)[0][:num]]
-    digits_1 = data_low[np.where(label_low==1)[0][:num]]
-    digits_2 = data_low[np.where(label_low==2)[0][:num]]
-    digits_3 = data_low[np.where(label_low==3)[0][:num]]
-    digits_4 = data_low[np.where(label_low==4)[0][:num]]
-    digits_5 = data_low[np.where(label_low==5)[0][:num]]
-    digits_6 = data_high[np.where(label_high==6)[0][:num]]
-    digits_7 = data_high[np.where(label_high==7)[0][:num]]
-    digits_8 = data_high[np.where(label_high==8)[0][:num]]
-    digits_9 = data_high[np.where(label_high==9)[0][:num]]
-    
-    digits = np.zeros((10*num,28,28,1))
-    labels = np.empty(10*num)
-
-    digits[0:num] = digits_0
-    digits[num:2*num] = digits_1
-    digits[2*num:3*num] = digits_2
-    digits[3*num:4*num] = digits_3
-    digits[4*num:5*num] = digits_4
-    digits[5*num:6*num] = digits_5
-    digits[6*num:7*num] = digits_6
-    digits[7*num:8*num] = digits_7
-    digits[8*num:9*num] = digits_8
-    digits[9*num:10*num] = digits_9
-
-    for i in range(0,10*num):
-        if(i<1*num):
-            labels[i] = '0'
-        elif(i<2*num):
-            labels[i] = '1'
-        elif(i<3*num):
-            labels[i] = '2'
-        elif(i<4*num):
-            labels[i] = '3'
-        elif(i<5*num):
-            labels[i] = '4'
-        elif(i<6*num):
-            labels[i] = '5'
-        elif(i<7*num):
-            labels[i] = '6'
-        elif(i<8*num):
-            labels[i] = '7'
-        elif(i<9*num):
-            labels[i] = '8'
-        else:
-            labels[i] = '9'
-            
-    return digits, labels
-
-
-
-
 """ This function shuffles the dataset given as output, the randomization can be changed by chaanging the seed """
 def shuffleDataset(data_matrix, lable_ary):
    
@@ -112,10 +57,6 @@ def letterToSoftmax(current_label, known_labels):
             ret_ary[i] = 1
 
     return ret_ary  
-
-
-
-
 
 """ Function that computes the softmax operator of the array in input.
     Slightly differs from the one implemented by Keras but is needed to maintain consistency here and in the OpenMV camera """
