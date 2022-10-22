@@ -103,6 +103,113 @@ def create_k_mean(data, number_of_clusters, verbose = False):
     return k
 
 
+'''Function to compute kmean clustering on the new dataset and the saved features'''
+def k_mean_clustering(features_run, features_saved, labels_run, labels_saved, n_cluster, batch_size):
+
+  # Define initial set of features
+  labels_init_list = list(range(0, n_cluster))
+
+  # labels_init_list = list([1, 9, 5, 0])
+  # labels_init_list = list([0, 1, 2, 3, 4, 5, 6, 7, 8, 9])
+  # n_cluster = len(labels_init_list)
+
+  # Extract from the saved features the labels that we need
+  features_saved_init = []
+  labels_features_saved_init = []
+  # Extract features of digits considered in labels_init_list
+  for i in range(0, len(features_saved)):
+      if labels_saved[i] in labels_init_list:
+        features_saved_init.append(features_saved[i,:])
+        labels_features_saved_init.append(labels_saved[i])
+  
+  # Convert list to nparray
+  features = np.array(features_saved_init)
+  features = features.astype('float32')
+  labels_features = np.array(labels_features_saved_init)  
+
+  # Concateno al vettore delle features iniziali le features della nuova batch da analizzare
+  features = np.concatenate((features, features_run))
+  labels_features = np.append(labels_features, labels_run).astype(int)
+
+  # Repeat until clustering is correct
+  while True:
+    # KMean Clustering
+    k_mean = create_k_mean(features, n_cluster)
+
+    # Find pseudolabels for each new image
+    # Pseudolabels are computed by looking at the confusion matrix of the saved dataset (where ground truth is known)
+    clusters_features_saved = list(k_mean.labels_[0:len(labels_features_saved_init)])
+    labels_features_saved_init = list(labels_features_saved_init)
+    cluster_list = list(range(0,n_cluster))
+    map_clu2lbl, map_lbl2clu = cluster_to_label(clusters_features_saved, labels_features_saved_init, cluster_list, labels_init_list) 
+ 
+    if len(map_clu2lbl) == n_cluster:
+        # Exit the loop
+        break
+
+  clusters_features = k_mean.labels_
+
+  # Compute pseudolabels
+  pseudolabels = []
+  for i in range(0, len(clusters_features)):
+    pseudolabel = map_clu2lbl[clusters_features[i]]
+    pseudolabels.append(pseudolabel)
+
+
+  pseudolabels_run = pseudolabels[len(clusters_features) - batch_size: len(clusters_features)]
+
+  err = 0 # Initialize error counter
+  for i in range(len(labels_run)):
+    if pseudolabels_run[i] != labels_run[i]:
+      err += 1
+  
+  # Evaluation metrics
+  ComputeClusteringMetrics(features, pseudolabels, k_mean)
+  ComputeEvalMetrics(labels_run, pseudolabels_run, labels_init_list)
+
+  return pseudolabels_run, err
+
+
+def trainOneEpoch_OL(model, images, labels, features_saved, labels_saved, batch_size):
+       
+    learn_rate = model.l_rate
+    n_cluster = 10
+    n_samples = images.shape[0]
+
+    # BATCH PROCESSING OF DATA
+    n_batch = int(np.ceil(n_samples / batch_size))
+    images_batch = np.array_split(images, n_batch)
+    labels_batch = np.array_split(labels, n_batch)
+
+    err_tot = 0
+    err_batch = np.zeros((n_batch,2))
+    pseudo_labels = []
+    for i in range(0, n_batch):
+        print("Starting batch: {}/{}".format(i+1, n_batch))
+        # Features extraction
+        start1 = time.time()
+        features_batch = model.ML_frozen.predict(images_batch[i].reshape((batch_size,28,28,1)), verbose = False)
+        end1 = time.time()
+
+        # Kmean clustering
+        start2 = time.time()
+        pseudo_labels_batch, err = k_mean_clustering(features_batch, features_saved, labels_batch[i], labels_saved, n_cluster, batch_size)
+        end2 = time.time()
+        pseudo_labels.extend(pseudo_labels_batch)
+        err_batch[i, :] = err, len(labels_batch)
+        err_tot += err
+
+        print("Features extraction took {:.3f} seconds and Kmean clustering took {:.3f} seconds, with {:.1%} accuracy ({} errors)".format(end1-start1, end2-start2, 1-err/batch_size, err))
+
+    print("Total clustering error: {:.1%} ({}/{} errors)".format(err_tot/n_samples, err_tot, n_samples))
+
+    # ONLINE-LEARNING -> si può spostare nella parte delle batch
+    print('**********************************\n Performing training with OL\n')
+    features_images = model.ML_frozen.predict(images.reshape((n_samples,28,28,1)), verbose = False)
+    for i in range(0, n_samples):
+        update_active_layer(model, features_images[i,:], pseudo_labels[i])
+
+
 '''Function to compute confusion matrix between cluster and labels'''
 def confusion_matrix2(clusters_features_saved, labels_features_saved_init, cluster_list, labels_list):
 
@@ -142,6 +249,52 @@ def cluster_to_label(clusters_features, labels_features, cluster_list, labels_in
   # map_lbl2clu -> label: cluster
 
   return map_clu2lbl, map_lbl2clu
+
+
+''' Function to check if the current label is already known to the model (OL layer). If not it augments the custom layer adding a new node'''
+def CheckLabelKnown(model, current_label):
+    
+    found = False
+    for i in range(0, len(model.label)):
+        if(current_label == model.label[i]):
+            found = True
+        
+    if not found:
+        print(f'New digit detected ->', current_label)
+
+        model.label.append(current_label)   # Add new digit to label
+                
+        # Increase weights and biases dimensions
+        model.W = np.hstack((model.W, np.zeros([model.W.shape[0],1])))
+        model.b = np.hstack((model.b, np.zeros([1])))
+        
+        model.W_2 = np.hstack((model.W_2, np.zeros([model.W.shape[0],1])))
+        model.b_2 = np.hstack((model.b_2, np.zeros([1])))
+
+def update_active_layer(model, features, pseudolabel):
+
+    learn_rate = model.l_rate
+
+    CheckLabelKnown(model, pseudolabel)
+    
+    y_true_soft = DigitToSoftmax(pseudolabel, model.label)
+               
+    # Prediction
+    y_pred = model.predict(features)
+        
+    # Backpropagation
+    cost = y_pred-y_true_soft
+        
+    for j in range(0,model.W.shape[0]):
+
+         # Update weights
+        dW = np.multiply(cost, features[j]*learn_rate)
+        model.W[j,:] = model.W[j,:]-dW
+
+    # Update biases
+    db      = np.multiply(cost, learn_rate)
+    model.b = model.b-db
+
 
 
 class Custom_Layer(object):
