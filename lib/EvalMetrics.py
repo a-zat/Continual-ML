@@ -18,7 +18,6 @@ def ComputeClusteringMetrics(features, labels, k_mean):
 
     # Ci sarebbero anche score(x) e transform(x) in sklearn
 
-
 def ComputeEvalMetrics(true_labels, pred_labels, labels_list):
 
     #print("True labels:", true_labels)
