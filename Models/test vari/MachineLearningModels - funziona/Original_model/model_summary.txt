@@ -1,3 +1,0 @@
-PARAMETERS SAVED FROM THE TRAINING
-
- This model has been trained for learning the first 6 digits from the MNIST dataset, this is the ORIGINAL MODEL
