@@ -187,3 +187,120 @@ class Custom_Layer(object):
     def predict(self, x):
         mat_prod = np.array(np.matmul(x, self.W) + self.b)
         return softmax(mat_prod) # othwerwise do it with keras|also remove np.array()| tf.nn.softmax(mat_prod) 
+
+'''Function to map the cluster index with the pseudo labels. The function must be run only on the saved_dataset'''
+def cluster_to_label2(clusters_features, labels_features, cluster_list, labels_init_list):
+
+  # 1: Compute Confusion matrix (for the saved features)
+  cmtx = confusion_matrix2(clusters_features, labels_features, cluster_list, labels_init_list)
+
+  # 2: Find max in each row -> cluster corresponding to each label
+  map_idx = np.argmax(cmtx, axis = 1)  
+
+  # Fill dictionary with map
+  map_clu2lbl = {}
+  map_lbl2clu = {}
+  labels_init_list.sort()
+  for i in range(0, len(map_idx)):
+    map_clu2lbl[map_idx[i]] = labels_init_list[i]
+    map_lbl2clu[labels_init_list[i]] = map_idx[i]
+  
+  # Mapping dictionary
+  # map_clu2lbl -> cluster: label
+  # map_lbl2clu -> label: cluster
+
+  return map_clu2lbl, map_lbl2clu
+
+
+'''Function to map the cluster index with the pseudo labels. The function must be run only on the saved_dataset'''
+def cluster_to_label(clusters_features, labels_features, cluster_list, labels_init_list):
+
+  # 1: Compute Confusion matrix (for the saved features)
+  cmtx = confusion_matrix2(clusters_features, labels_features, cluster_list, labels_init_list)
+
+  # 2: Find max in each row -> cluster corresponding to each label
+  map_idx = np.argmax(cmtx, axis = 0)  
+
+  # Fill dictionary with map
+  map_clu2lbl = {}
+  map_lbl2clu = {}
+  labels_init_list.sort()
+  for i in range(0, len(map_idx)):
+    map_lbl2clu[map_idx[i]] = labels_init_list[i]
+    map_clu2lbl[labels_init_list[i]] = map_idx[i]
+  
+  # Mapping dictionary
+  # map_clu2lbl -> cluster: label
+  # map_lbl2clu -> label: cluster
+
+  return map_clu2lbl, map_lbl2clu
+
+
+'''Function to compute kmean clustering on the new dataset and the saved features'''
+def k_mean_clustering(features_run, features_saved, labels_run, labels_saved, n_cluster, batch_size, verbose = True):
+
+  # Define initial set of features
+  labels_init_list = list(range(0, n_cluster))
+
+  # labels_init_list = list([1, 9, 5, 0])
+  # labels_init_list = list([0, 1, 2, 3, 4, 5, 6, 7, 8, 9])
+  # n_cluster = len(labels_init_list)
+
+  # Extract from the saved features the labels that we need
+  features_saved_init = []
+  labels_features_saved_init = []
+  # Extract features of digits considered in labels_init_list
+  for i in range(0, len(features_saved)):
+      if labels_saved[i] in labels_init_list:
+        features_saved_init.append(features_saved[i,:])
+        labels_features_saved_init.append(labels_saved[i])
+  
+  # Convert list to nparray
+  features = np.array(features_saved_init)
+  features = features.astype('float32')
+  labels_features = np.array(labels_features_saved_init)  
+
+  # Concateno al vettore delle features iniziali le features della nuova batch da analizzare
+  features = np.concatenate((features, features_run))
+  labels_features = np.append(labels_features, labels_run).astype(int)
+
+  # Repeat until clustering is correct
+  max_iter = 1
+  iter = 0
+  while True:
+    # KMean Clustering
+    k_mean = create_k_mean(features, n_cluster)
+
+    # Find pseudolabels for each new image
+    # Pseudolabels are computed by looking at the confusion matrix of the saved dataset (where ground truth is known)
+    clusters_features_saved = list(k_mean.labels_[0:len(labels_features_saved_init)])
+    labels_features_saved_init = list(labels_features_saved_init)
+    cluster_list = list(range(0,n_cluster))
+    map_clu2lbl, map_lbl2clu = cluster_to_label(clusters_features_saved, labels_features_saved_init, cluster_list, labels_init_list) 
+ 
+    iter += 1
+    if len(map_clu2lbl) == n_cluster or iter > max_iter:
+        # Exit the loop
+        break
+
+  clusters_features = k_mean.labels_
+
+  # Compute pseudolabels
+  pseudolabels = []
+  for i in range(0, len(clusters_features)):
+    pseudolabel = map_clu2lbl[clusters_features[i]]
+    pseudolabels.append(pseudolabel)
+
+  pseudolabels_run = pseudolabels[len(clusters_features) - batch_size: len(clusters_features)]
+
+  err = 0 # Initialize error counter
+  for i in range(len(labels_run)):
+    if pseudolabels_run[i] != labels_run[i]:
+      err += 1
+  
+  # Evaluation metrics
+  if verbose:
+    ComputeClusteringMetrics(features, pseudolabels, k_mean)
+    ComputeEvalMetrics(labels_run, pseudolabels_run, labels_init_list)
+
+  return pseudolabels_run, err
