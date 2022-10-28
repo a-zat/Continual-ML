@@ -56,7 +56,7 @@ def softmax(array):
 
 
 ''' Function to transform a label saved as a char to an hot-one encoded array where the 1 is put in the correct label position '''
-def DigitToSoftmax(current_label, known_labels):
+def LabelToActivation(current_label, known_labels):
     ret_ary = np.zeros(len(known_labels))
 
     # known_labels_2 = [0,1,2,3,4,5]
@@ -101,14 +101,6 @@ def create_k_mean(data, number_of_clusters, verbose = False):
         print("Training took {} seconds".format(end - start))
 
     return k
-
-
-
-    # ONLINE-LEARNING -> si può spostare nella parte delle batch
-    print('**********************************\n Performing training with OL\n')
-    features_images = model.ML_frozen.predict(images.reshape((n_samples,28,28,1)), verbose = False)
-    for i in range(0, n_samples):
-        update_active_layer(model, features_images[i,:], pseudo_labels[i])
 
 
 '''Function to compute confusion matrix between cluster and labels'''
