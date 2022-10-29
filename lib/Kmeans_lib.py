@@ -8,10 +8,9 @@ from lib.EvalMetrics import *
 def create_k_mean(data, number_of_clusters, verbose = False):
 
     # n_jobs is set to -1 to use all available CPU cores. This makes a big difference on an 8-core CPU
-    # especially when the data size gets much bigger. #perfMatters
+    # especially when the data size gets much bigger.
 
     k = KMeans(n_clusters=number_of_clusters, n_init=100)
-    # k = KMeans(n_clusters=number_of_clusters, n_init=20, max_iter=500)
 
     # Let's do some timings to see how long it takes to train.
     start = time.time()
@@ -47,30 +46,6 @@ def confusion_matrix2(clusters_features_saved, labels_features_saved_init, clust
 
 
 '''Function to map the cluster index with the pseudo labels. The function must be run only on the saved_dataset'''
-def cluster_to_label2(clusters_features, labels_features, cluster_list, labels_init_list):
-
-  # 1: Compute Confusion matrix (for the saved features)
-  cmtx = confusion_matrix2(clusters_features, labels_features, cluster_list, labels_init_list)
-
-  # 2: Find max in each row -> cluster corresponding to each label
-  map_idx = np.argmax(cmtx, axis = 1)  
-
-  # Fill dictionary with map
-  map_clu2lbl = {}
-  map_lbl2clu = {}
-  labels_init_list.sort()
-  for i in range(0, len(map_idx)):
-    map_clu2lbl[map_idx[i]] = labels_init_list[i]
-    map_lbl2clu[labels_init_list[i]] = map_idx[i]
-  
-  # Mapping dictionary
-  # map_clu2lbl -> cluster: label
-  # map_lbl2clu -> label: cluster
-
-  return map_clu2lbl, map_lbl2clu
-
-
-'''Function to map the cluster index with the pseudo labels. The function must be run only on the saved_dataset'''
 def cluster_to_label(clusters_features, labels_features, cluster_list, labels_init_list):
 
   # 1: Compute Confusion matrix (for the saved features)
@@ -95,14 +70,11 @@ def cluster_to_label(clusters_features, labels_features, cluster_list, labels_in
 
 
 '''Function to compute kmean clustering on the new dataset and the saved features'''
-def k_mean_clustering(features_run, features_saved, labels_run, labels_saved, n_cluster, batch_size, verbose = True):
+def k_mean_clustering(features_run, features_saved, labels_run, labels_saved, settings):
 
   # Define initial set of features
-  labels_init_list = list(range(0, n_cluster))
-
-  # labels_init_list = list([1, 9, 5, 0])
-  # labels_init_list = list([0, 1, 2, 3, 4, 5, 6, 7, 8, 9])
-  # n_cluster = len(labels_init_list)
+  labels_init_list = settings.clustering_labels
+  n_cluster = len(labels_init_list)
 
   # Extract from the saved features the labels that we need
   features_saved_init = []
@@ -127,7 +99,7 @@ def k_mean_clustering(features_run, features_saved, labels_run, labels_saved, n_
   iter = 0
   while True:
     # KMean Clustering
-    k_mean = create_k_mean(features, n_cluster)
+    k_mean = create_k_mean(features, n_cluster, verbose = (settings.verbosity == 'DEBUG'))
 
     # Find pseudolabels for each new image
     # Pseudolabels are computed by looking at the confusion matrix of the saved dataset (where ground truth is known)
@@ -149,7 +121,7 @@ def k_mean_clustering(features_run, features_saved, labels_run, labels_saved, n_
     pseudolabel = map_clu2lbl[clusters_features[i]]
     pseudolabels.append(pseudolabel)
 
-  pseudolabels_run = pseudolabels[len(clusters_features) - batch_size: len(clusters_features)]
+  pseudolabels_run = pseudolabels[len(clusters_features) - settings.cluster_batch_size: len(clusters_features)]
 
   err = 0 # Initialize error counter
   for i in range(len(labels_run)):
@@ -157,7 +129,7 @@ def k_mean_clustering(features_run, features_saved, labels_run, labels_saved, n_
       err += 1
   
   # Evaluation metrics
-  if verbose:
+  if settings.verbosity == 'DEBUG':
     ComputeClusteringMetrics(features, pseudolabels, k_mean)
     ComputeEvalMetrics(labels_run, pseudolabels_run, labels_init_list)
 

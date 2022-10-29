@@ -83,6 +83,8 @@ class Custom_Layer(object):
         self.l_rate = 0                                         # learning rate that changes depending on the algorithm        
 
         self.batch_size = 0
+
+        self.ll_method = ''
         
         # Related to the results fo the model
         self.conf_matr = np.zeros((10,10))    # container for the confusion matrix       
@@ -98,6 +100,18 @@ class Custom_Layer(object):
         mat_prod = np.array(np.matmul(x, self.W) + self.b)
         return softmax(mat_prod) # othwerwise do it with keras|also remove np.array()| tf.nn.softmax(mat_prod) 
 
+'''Class to store settings for training/testing the model'''
+class TrainSettings(object):
+    def __init__(self):
+        self.cluster_batch_size = 1
+        self.verbosity = 'SILENT'
+        self.fill_cmtx = True
+        self.clustering_labels = []
+        self.n_cluster = len(self.clustering_labels)
+        self.save_output = False
+        self.save_path = ''
+        self.save_plots = False
+        self.mode = 'UNDEFINED'
 
 def update_ll_OL(model, features, pseudolabel):
     learn_rate = model.l_rate
@@ -111,15 +125,11 @@ def update_ll_OL(model, features, pseudolabel):
        
     # Backpropagation
     cost = y_pred-y_true_soft
-
-    #print(y_true_soft, " ", y_pred, " ", cost, " ", model.W)
-    print("w shape", model.W.shape)
         
     for j in range(0,model.W.shape[0]):
          # Update weights
         dW = np.multiply(cost, features[j]*learn_rate)
         model.W[j,:] = model.W[j,:]-dW
-        print("dw shape", dW.shape)
 
     # Update biases
     db      = np.multiply(cost, learn_rate)
@@ -175,144 +185,6 @@ def update_ll_CWR(model, features, pseudolabel, found_digit, reset):
     prediction = model.label[np.argmax(y_pred_c)]
     return prediction, found_digit
 
-def TrainOneEpoch(model, images, labels, features_saved, labels_saved, batch_size, ll_ALGORITHM, verbose = False):
-
-    n_cluster = 10
-    n_samples = images.shape[0]
-
-    clust_err_array = []
-    model_err_array = []
-
-    # BATCH PROCESSING OF DATA
-    batch_size = min(batch_size, len(labels))
-    n_batch = int(np.ceil(n_samples / batch_size))
-    images_batch = np.array_split(images, n_batch)
-    labels_batch = np.array_split(labels, n_batch)
-
-    err_clu = 0 # Clustering error (entire epoch)
-    err_mod = 0 # Model error (entire epoch)
-    # err_batch = np.zeros((n_batch,2))
-    pseudolabels = []
-    model_cntr = 0 # Model batch counter, used for CWR
-    found_digit = np.zeros(10)  # used for CWR
-    for i in range(0, n_batch):
-        print("Starting train batch: {}/{}".format(i+1, n_batch))
-        # Features extraction
-        start1 = time.time()
-        features_batch = model.ML_frozen.predict(images_batch[i].reshape((batch_size,28,28,1)), verbose = False)
-        end1 = time.time()
-
-        # Kmean clustering
-        start2 = time.time()
-        pseudolabels_batch, err_clu_batch = k_mean_clustering(features_batch, features_saved, labels_batch[i], labels_saved, n_cluster, batch_size, verbose = False)
-        end2 = time.time()
-        pseudolabels.extend(pseudolabels_batch)
-        # err_batch[i, :] = err, len(labels_batch)
-        err_clu += err_clu_batch
-        clust_err_array.append(err_clu_batch)
-
-        # SALVARE L'ARRAY DI PREDICTIONS
-        err_mod_batch = 0
-        for j in range(len(pseudolabels_batch)):
-            if ll_ALGORITHM == 'OL':
-                prediction = update_ll_OL(model, features_batch[j,:], pseudolabels_batch[j])
-                
-            if ll_ALGORITHM == 'CWR':
-                
-                if(model_cntr == model.batch_size):
-                    prediction, found_digit = update_ll_CWR(model, features_batch[j,:], pseudolabels_batch[j], found_digit, True)
-                    model_cntr = 0
-                else:
-                    prediction, found_digit = update_ll_CWR(model, features_batch[j,:], pseudolabels_batch[j], found_digit, False)
-                model_cntr += 1
-
-            if(prediction != labels_batch[i][j]):  
-               err_mod_batch += 1
-
-        model_err_array.append(err_mod_batch)
-        err_mod += err_mod_batch
-
-        if verbose:
-            print("Features extraction took {:.3f} seconds and Kmean clustering took {:.3f} seconds, with {:.1%} accuracy ({} errors)".format(end1-start1, end2-start2, 1-err_clu_batch/batch_size, err_clu_batch))
-            print("Batch Model errors {} ({:.1%} accuracy)".format(err_mod_batch, 1-err_mod_batch/batch_size))
     
-    if verbose:
-        print("Total clustering error: {:.1%} ({}/{} errors, {:.1%} accuracy)".format(err_clu/n_samples, err_clu, n_samples, 1-err_clu/n_samples))
-        print("Total model error: {:.1%} ({}/{} errors, {:.1%} accuracy)".format(err_mod/n_samples, err_mod, n_samples, 1-err_mod/n_samples))
-
-    return clust_err_array, model_err_array
 
 
-def TestOneEpoch(model, images, labels, features_saved, labels_saved, batch_size, ll_ALGORITHM, verbose = False):
-
-    n_cluster = 10
-    n_samples = images.shape[0]
-
-    clust_err_array = []
-    model_err_array = []
-
-    # BATCH PROCESSING OF DATA
-    batch_size = min(batch_size, len(labels))
-    n_batch = int(np.ceil(n_samples / batch_size))
-    images_batch = np.array_split(images, n_batch)
-    labels_batch = np.array_split(labels, n_batch)
-
-    err_clu = 0 # Clustering error (entire epoch)
-    err_mod = 0 # Model error (entire epoch)
-    # err_batch = np.zeros((n_batch,2))
-    pseudolabels = []
-    model_cntr = 0 # Model batch counter, used for CWR
-    found_digit = np.zeros(10)  # used for CWR
-    for i in range(0, n_batch):
-        print("Starting test batch: {}/{}".format(i+1, n_batch))
-        # Features extraction
-        start1 = time.time()
-        features_batch = model.ML_frozen.predict(images_batch[i].reshape((batch_size,28,28,1)), verbose = False)
-        end1 = time.time()
-
-        # Kmean clustering
-        start2 = time.time()
-        pseudolabels_batch, err_clu_batch = k_mean_clustering(features_batch, features_saved, labels_batch[i], labels_saved, n_cluster, batch_size, verbose = False)
-        end2 = time.time()
-        pseudolabels.extend(pseudolabels_batch)
-        # err_batch[i, :] = err, len(labels_batch)
-        err_clu += err_clu_batch
-        clust_err_array.append(err_clu_batch)
-
-        # SALVARE L'ARRAY DI PREDICTIONS
-        err_mod_batch = 0
-        for j in range(len(pseudolabels_batch)):
-            if ll_ALGORITHM == 'OL':
-                prediction = update_ll_OL(model, features_batch[j,:], pseudolabels_batch[j])
-                
-            if ll_ALGORITHM == 'CWR':
-                
-                if(model_cntr == model.batch_size):
-                    prediction, found_digit = update_ll_CWR(model, features_batch[j,:], pseudolabels_batch[j], found_digit, True)
-                    model_cntr = 0
-                else:
-                    prediction, found_digit = update_ll_CWR(model, features_batch[j,:], pseudolabels_batch[j], found_digit, False)
-                model_cntr += 1
-
-            if(prediction != labels_batch[i][j]):  
-               err_mod_batch += 1
-
-            # Update confusion matrix - posso creare funzione in Custom_layer
-            for k in range(0,len(model.label)):
-                if(prediction == model.std_label[k]):
-                    p = np.copy(k)
-                if(labels_batch[i][j] == model.std_label[k]):
-                    t = np.copy(k)
-            model.conf_matr[t,p] += 1  
-
-        model_err_array.append(err_mod_batch)
-        err_mod += err_mod_batch
-
-        if verbose:
-            print("Features extraction took {:.3f} seconds and Kmean clustering took {:.3f} seconds, with {:.1%} accuracy ({} errors)".format(end1-start1, end2-start2, 1-err_clu_batch/batch_size, err_clu_batch))
-            print("Batch Model errors {} ({:.1%} accuracy)".format(err_mod_batch, 1-err_mod_batch/batch_size))
-    
-    print("Total clustering error: {:.1%} ({}/{} errors, {:.1%} accuracy)".format(err_clu/n_samples, err_clu, n_samples, 1-err_clu/n_samples))
-    print("Total model error: {:.1%} ({}/{} errors, {:.1%} accuracy)".format(err_mod/n_samples, err_mod, n_samples, 1-err_mod/n_samples))
-
-    return clust_err_array, model_err_array
