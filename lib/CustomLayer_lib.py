@@ -112,6 +112,7 @@ class TrainSettings(object):
         self.save_path = ''
         self.save_plots = False
         self.mode = 'UNDEFINED'
+        self.datalog = [None] * 4
 
 def update_ll_OL(model, features, pseudolabel):
     learn_rate = model.l_rate

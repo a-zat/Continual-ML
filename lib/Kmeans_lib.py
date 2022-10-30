@@ -121,7 +121,7 @@ def k_mean_clustering(features_run, features_saved, labels_run, labels_saved, se
     pseudolabel = map_clu2lbl[clusters_features[i]]
     pseudolabels.append(pseudolabel)
 
-  pseudolabels_run = pseudolabels[len(clusters_features) - settings.cluster_batch_size: len(clusters_features)]
+  pseudolabels_run = pseudolabels[len(clusters_features) - len(labels_run): len(clusters_features)]
 
   err = 0 # Initialize error counter
   for i in range(len(labels_run)):

@@ -1,6 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt 
-from pathlib import Path
+import os
 
 #######################################
 #    ____  _     ___ _____ ____  
@@ -140,18 +140,64 @@ def plot_table(model):
 ######### Utility functions
 
 def save_plots(model, SAVE_PATH, index):
-    Path(SAVE_PATH).mkdir(exist_ok=True) # Create directory if not exists
+    # Path(SAVE_PATH).mkdir(exist_ok=True) # Create directory if not exists
+    os.makedirs(SAVE_PATH, exist_ok = True)
 
     # Create and save Figures
     table = plot_table(model)
-    table.savefig(SAVE_PATH + '/Table_batch_{}.png'.format(index))
+    table.savefig(SAVE_PATH + '/Table_{}.png'.format(index))
 
     barchart = plot_barChart(model)
-    barchart.savefig(SAVE_PATH + '/BarChart_batch_{}.png'.format(index))
+    barchart.savefig(SAVE_PATH + '/BarChart_{}.png'.format(index))
 
     cmtx = plot_confMatrix(model)
-    cmtx.savefig(SAVE_PATH + '/CMtx_batch_{}.png'.format(index))
+    cmtx.savefig(SAVE_PATH + '/CMtx_{}.png'.format(index))
 
     # Close all figures
     plt.close('all')
+
+
+
+
+######### 
+import io
+from PIL import Image
+
+def save_plots2(model, SAVE_PATH, index):
+    # Path(SAVE_PATH).mkdir(exist_ok=True) # Create directory if not exists
+    # os.makedirs(SAVE_PATH, exist_ok = True)
+
+    # Create and save Figures
+    
+    # Confusion matrix
+    cmtx = plot_confMatrix(model)
+    buf = io.BytesIO()
+    plt.savefig(buf, format='png')
+    buf.seek(0)
+    img_cmtx = Image.open(buf)
+    plt.close(cmtx)
+
+    # Accuracy chart
+    barchart = plot_barChart(model)
+    buf = io.BytesIO()
+    plt.savefig(buf, format='png')
+    buf.seek(0)
+    img_barchart = Image.open(buf)
+    plt.close(barchart)
+
+    # Metrics table
+    table = plot_table(model)
+    buf = io.BytesIO()
+    plt.savefig(buf, format='png')
+    buf.seek(0)
+    img_table = Image.open(buf)
+    plt.close(cmtx)
+
+    fig = plt.figure()
+    fig.add_subplot(3, 1, 1, frameon=False)
+    plt.imshow(img_cmtx)
+    fig.add_subplot(3, 1, 2, frameon=False)
+    plt.imshow(img_barchart)
+    fig.add_subplot(3, 1, 3, frameon=False)
+    plt.imshow(img_table)
 
