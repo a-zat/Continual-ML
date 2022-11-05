@@ -3,8 +3,6 @@ import numpy as np
 import time
 from tensorflow import keras
 
-from lib.Kmeans_lib import k_mean_clustering
-
 '''Function to compute softmax of the custom layer'''
 def softmax(array):
     
@@ -62,58 +60,7 @@ def CheckLabelKnown(model, current_label):
         model.W_2 = np.hstack((model.W_2, np.zeros([model.W.shape[0],1])))
         model.b_2 = np.hstack((model.b_2, np.zeros([1])))
 
-
-''' Custom layer class'''
-class Custom_Layer(object):
-    def __init__(self, model):
-
-        # Related to the layer
-        self.ML_frozen = keras.models.Sequential(model.layers[:-1])  # extract the last layer from the original model
-        self.ML_frozen.compile()
-        
-        self.W = np.array(model.layers[-1].get_weights()[0])    # extract the weights from the last layer
-        self.b = np.array(model.layers[-1].get_weights()[1])    # extract the biases from the last layer
-               
-        self.W_2 = np.zeros(self.W.shape)
-        self.b_2 = np.zeros(self.b.shape)
-        
-        self.label     = [0,1,2,3,4,5]              
-        self.std_label = [0,1,2,3,4,5,6,7,8,9]
-        
-        self.l_rate = 0                                         # learning rate that changes depending on the algorithm        
-
-        self.batch_size = 0
-
-        self.ll_method = ''
-        
-        # Related to the results fo the model
-        self.conf_matr = np.zeros((10,10))    # container for the confusion matrix       
-        self.macro_avrg_precision = 0       
-        self.macro_avrg_recall = 0
-        self.macro_avrg_F1score = 0
-        
-        self.title = ''       # title that will be displayed on plots
-        self.filename = ''    # name of the files to be saved (plots, charts, conf matrix)
-        
-    # Function that is used for the prediction of the model saved in this class
-    def predict(self, x):
-        mat_prod = np.array(np.matmul(x, self.W) + self.b)
-        return softmax(mat_prod) # othwerwise do it with keras|also remove np.array()| tf.nn.softmax(mat_prod) 
-
-'''Class to store settings for training/testing the model'''
-class TrainSettings(object):
-    def __init__(self):
-        self.cluster_batch_size = 1
-        self.verbosity = 'SILENT'
-        self.fill_cmtx = True
-        self.clustering_labels = []
-        self.n_cluster = len(self.clustering_labels)
-        self.save_output = False
-        self.save_path = ''
-        self.save_plots = False
-        self.mode = 'UNDEFINED'
-        self.datalog = [None] * 4
-
+'''Function to update the model with the current sample, using OL'''
 def update_ll_OL(model, features, pseudolabel):
     learn_rate = model.l_rate
     
@@ -140,11 +87,10 @@ def update_ll_OL(model, features, pseudolabel):
 
     return prediction
 
-
-
+'''Function to update the model with the current sample, using CWR'''
 def update_ll_CWR(model, features, pseudolabel, found_digit, reset):
     learn_rate = model.l_rate
-    model_batch_size = model.batch_size
+    # model_batch_size = model.update_batch_size
            
     CheckLabelKnown(model, pseudolabel)
     y_true_soft = LabelToActivation(pseudolabel, model.label)
@@ -186,6 +132,50 @@ def update_ll_CWR(model, features, pseudolabel, found_digit, reset):
     prediction = model.label[np.argmax(y_pred_c)]
     return prediction, found_digit
 
-    
 
 
+
+''' Custom layer class'''
+class Custom_Layer(object):
+    def __init__(self, model):
+
+        # Active layer weights
+        self.ML_frozen = keras.models.Sequential(model.layers[:-1])  # extract the last layer from the original model
+        self.ML_frozen.compile()
+        
+        self.W = np.array(model.layers[-1].get_weights()[0])    # extract the weights from the last layer
+        self.b = np.array(model.layers[-1].get_weights()[1])    # extract the biases from the last layer
+               
+        self.W_2 = np.zeros(self.W.shape)
+        self.b_2 = np.zeros(self.b.shape)
+        
+        # Model update settings
+        self.label     = [0,1,2,3,4,5]                          # Initial labels known to the model
+        self.std_label = [0,1,2,3,4,5,6,7,8,9]                  # List of all labels
+        
+        self.l_rate = 0                                         # learning rate that changes depending on the algorithm        
+        self.update_batch_size = 0
+
+        self.ll_method = ''
+        #self.found_digit = # Used in CWR
+        self.model_counter = 0 # Used in CWR
+
+        # Clustering settings
+        self.clustering_batch_size = 1                          
+
+        # Execution settings
+        self.settings = None                  # Link to object of class TrainSettings (lib.utils)
+        
+        # Results attributes
+        self.conf_matr = np.zeros((10,10))    # container for the confusion matrix       
+        self.macro_avrg_precision = 0       
+        self.macro_avrg_recall = 0
+        self.macro_avrg_F1score = 0
+        
+        self.title = ''       # title that will be displayed on plots
+        self.filename = ''    # name of the files to be saved (plots, charts, conf matrix)
+        
+    # Function that is used for the prediction of the model saved in this class
+    def predict(self, x):
+        mat_prod = np.array(np.matmul(x, self.W) + self.b)
+        return softmax(mat_prod) # othwerwise do it with keras|also remove np.array()| tf.nn.softmax(mat_prod) 
