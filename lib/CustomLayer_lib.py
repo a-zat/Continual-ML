@@ -60,79 +60,74 @@ def CheckLabelKnown(model, current_label):
         model.W_2 = np.hstack((model.W_2, np.zeros([model.W.shape[0],1])))
         model.b_2 = np.hstack((model.b_2, np.zeros([1])))
 
-'''Function to update the model with the current sample, using OL'''
-def update_ll_OL(model, features, pseudolabel):
-    learn_rate = model.l_rate
-    
-    CheckLabelKnown(model, pseudolabel)
-    
+'''Function to update the model with the current sample, using either OL or CWR'''
+def update_ll(model, features, pseudolabel):
+
+    learn_rate = model.l_rate      
+    CheckLabelKnown(model, pseudolabel)      
     y_true_soft = LabelToActivation(pseudolabel, model.label)
-               
-    # Prediction
-    y_pred = model.predict(features)
-       
-    # Backpropagation
-    cost = y_pred-y_true_soft
+
+    if(model.ll_method == 'OL'):
+
+        # Prediction
+        y_pred = model.predict(features)
         
-    for j in range(0,model.W.shape[0]):
-         # Update weights
-        dW = np.multiply(cost, features[j]*learn_rate)
-        model.W[j,:] = model.W[j,:]-dW
+        # Backpropagation
+        cost = y_pred-y_true_soft
+            
+        for j in range(0,model.W.shape[0]):
+            # Update weights
+            dW = np.multiply(cost, features[j]*learn_rate)
+            model.W[j,:] = model.W[j,:]-dW
 
-    # Update biases
-    db      = np.multiply(cost, learn_rate)
-    model.b = model.b-db
+        # Update biases
+        db      = np.multiply(cost, learn_rate)
+        model.b = model.b-db
 
-    prediction = model.label[np.argmax(y_pred)]
+        prediction = model.label[np.argmax(y_pred)]
+
+    if(model.ll_method == 'CWR'):
+            
+        h = model.W.shape[0]
+        w = model.W.shape[1] 
+
+        model.found_digit[np.argmax(y_true_soft)] += 1  # update the digit counter
+                
+        # Prediction
+        y_pred_c = softmax(np.array(np.matmul(features, model.W) + model.b))      
+        y_pred_t = softmax(np.array(np.matmul(features, model.W_2) + model.b_2)) 
+    
+        # Backpropagation
+        cost = y_pred_t-y_true_soft
+
+        # Update weights
+        for j in range(0,h):
+            dW = np.multiply(cost, features[j] * learn_rate)
+            model.W_2[j,:] = model.W_2[j,:] - dW
+
+        # Update biases
+        db = np.multiply(cost, learn_rate)
+        model.b_2 = model.b_2-db     
+            
+        #If beginning of batch
+        if(model.update_counter == model.update_batch_size):
+            for k in range(0, w):
+                if(model.found_digit[k]!=0):
+                    tempW = np.multiply(model.W[:,k], model.found_digit[k])
+                    tempB = np.multiply(model.b[k]  , model.found_digit[k])
+                    model.W[:,k] = np.multiply(tempW+model.W_2[:,k], 1/(model.found_digit[k]+1))
+                    model.b[k]   = np.multiply(tempB+model.b_2[k],   1/(model.found_digit[k]+1))
+            model.W_2  =  np.copy(model.W) # np.zeros((model.W.shape)) 
+            model.b_2  =  np.copy(model.b) # np.zeros((model.b.shape))  
+
+            model.found_digit = np.zeros(len(model.std_label))  # reset
+            model.update_counter = 0
+        else:
+            model.update_counter += 1
+        
+        prediction = model.label[np.argmax(y_pred_c)]
 
     return prediction
-
-'''Function to update the model with the current sample, using CWR'''
-def update_ll_CWR(model, features, pseudolabel, found_digit, reset):
-    learn_rate = model.l_rate
-    # model_batch_size = model.update_batch_size
-           
-    CheckLabelKnown(model, pseudolabel)
-    y_true_soft = LabelToActivation(pseudolabel, model.label)
-        
-    h = model.W.shape[0]
-    w = model.W.shape[1] 
-
-    found_digit[np.argmax(y_true_soft)] += 1  # update the digit counter
-            
-    # PREDICTION
-    y_pred_c = softmax(np.array(np.matmul(features, model.W) + model.b))      
-    y_pred_t = softmax(np.array(np.matmul(features, model.W_2) + model.b_2)) 
- 
-    # BACKPROPAGATION
-    cost = y_pred_t-y_true_soft
-
-    # Update weights
-    for j in range(0,h):
-        dW = np.multiply(cost, features[j] * learn_rate)
-        model.W_2[j,:] = model.W_2[j,:] - dW
-
-    # Update biases
-    db = np.multiply(cost, learn_rate)
-    model.b_2 = model.b_2-db     
-        
-    #If beginning of batch
-    if(reset):
-        for k in range(0, w):
-            if(found_digit[k]!=0):
-                tempW = np.multiply(model.W[:,k], found_digit[k])
-                tempB = np.multiply(model.b[k]  , found_digit[k])
-                model.W[:,k] = np.multiply(tempW+model.W_2[:,k], 1/(found_digit[k]+1))
-                model.b[k]   = np.multiply(tempB+model.b_2[k],   1/(found_digit[k]+1))
-        model.W_2  =  np.copy(model.W) # np.zeros((model.W.shape)) 
-        model.b_2  =  np.copy(model.b) # np.zeros((model.b.shape))       
-        found_digit = np.zeros(10)  # reset
-    
-
-    prediction = model.label[np.argmax(y_pred_c)]
-    return prediction, found_digit
-
-
 
 
 ''' Custom layer class'''
@@ -155,10 +150,9 @@ class Custom_Layer(object):
         
         self.l_rate = 0                                         # learning rate that changes depending on the algorithm        
         self.update_batch_size = 0
-
         self.ll_method = ''
-        #self.found_digit = # Used in CWR
-        self.model_counter = 0 # Used in CWR
+        self.found_digit = np.zeros(len(self.std_label)) # Used in CWR
+        self.update_counter = 0 # Used in CWR
 
         # Clustering settings
         self.clustering_batch_size = 1                          
@@ -171,6 +165,11 @@ class Custom_Layer(object):
         self.macro_avrg_precision = 0       
         self.macro_avrg_recall = 0
         self.macro_avrg_F1score = 0
+
+        self.conf_matr2 = np.zeros((10,10))    # container for the confusion matrix       
+        self.macro_avrg_precision2 = 0       
+        self.macro_avrg_recall2 = 0
+        self.macro_avrg_F1score2 = 0
         
         self.title = ''       # title that will be displayed on plots
         self.filename = ''    # name of the files to be saved (plots, charts, conf matrix)

@@ -11,11 +11,17 @@ import os
                               
 
 """ Generates a bar plot of the class model given in input. The bar plot is generated from the attributo confusion_matrix """
-def plot_barChart(model):
-    
-    conf_matr   = model.conf_matr
-    title       = model.title 
-    filename    = model.filename
+def plot_barChart(model, id):
+
+    match id:
+        case 'model':
+            conf_matr   = model.conf_matr
+            title       = model.title + ' (Model)'
+            #filename    = model.filename + '_model'
+        case 'clust':
+            conf_matr   = model.conf_matr2
+            title       = model.title + ' (Clustering)'
+            #filename    = model.filename + '_clust'
 
     real_label = ['0','1','2','3','4','5','6','7','8','9','Model']
     # Generate matrix of colors for the bars
@@ -65,12 +71,19 @@ def plot_barChart(model):
 
 
 """ Function that generates a plot showing the confusion matrix of the class given in input """
-def plot_confMatrix(model):
+def plot_confMatrix(model, id):
 
-    title         = model.title 
-    filename      = model.filename
-    letter_labels = model.std_label 
-    conf_matrix   = model.conf_matr    
+    match id:
+        case 'model':
+            conf_matrix   = model.conf_matr
+            title         = model.title + ' (Model)'
+            #filename    = model.filename + '_model'
+        case 'clust':
+            conf_matrix   = model.conf_matr2
+            title         = model.title + ' (Clustering)'
+            #filename    = model.filename + '_clust
+
+    letter_labels = model.std_label    
     
     fig = plt.figure(figsize =(6,6))
     plt.clf()
@@ -100,12 +113,20 @@ def plot_confMatrix(model):
 
 
 """ Function that computes the accuracy, precision adn F1 score and generates a table """
-def plot_table(model):
+def plot_table(model, id):
 
-    title         = model.title 
-    filename      = model.filename
+    match id:
+        case 'model':
+            conf_matrix   = model.conf_matr
+            title         = model.title + ' (Model)'
+            #filename    = model.filename + '_model'
+        case 'clust':
+            conf_matrix   = model.conf_matr2
+            title         = model.title + ' (Clustering)'
+            #filename    = model.filename + '_clust
+
+
     letter_labels = model.std_label 
-    conf_matrix   = model.conf_matr   
     table_values  = np.zeros([3,conf_matrix.shape[1]])
 
     for i in range(0, table_values.shape[1]):
@@ -139,19 +160,26 @@ def plot_table(model):
 
 ######### Utility functions
 
-def save_plots(model, SAVE_PATH, index):
+def save_plots(model, SAVE_PATH, id, index):
+
+    match id:
+        case 'model':
+            strid = '/model_'
+        case 'clust':
+            strid = '/clust_'
+
     # Path(SAVE_PATH).mkdir(exist_ok=True) # Create directory if not exists
-    os.makedirs(SAVE_PATH, exist_ok = True)
+    os.makedirs(SAVE_PATH + strid, exist_ok = True)
 
     # Create and save Figures
-    table = plot_table(model)
-    table.savefig(SAVE_PATH + '/Table_{}.png'.format(index))
+    table = plot_table(model, id)
+    table.savefig(SAVE_PATH + strid + '/Table_{}.png'.format(index))
 
-    barchart = plot_barChart(model)
-    barchart.savefig(SAVE_PATH + '/BarChart_{}.png'.format(index))
+    barchart = plot_barChart(model, id)
+    barchart.savefig(SAVE_PATH + strid +  '/BarChart_{}.png'.format(index))
 
-    cmtx = plot_confMatrix(model)
-    cmtx.savefig(SAVE_PATH + '/CMtx_{}.png'.format(index))
+    cmtx = plot_confMatrix(model, id)
+    cmtx.savefig(SAVE_PATH +  strid + '/CMtx_{}.png'.format(index))
 
     # Close all figures
     plt.close('all')

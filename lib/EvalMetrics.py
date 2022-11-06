@@ -49,3 +49,21 @@ def ComputeEvalMetrics(true_labels, pred_labels, labels_list):
     #plot_barChart(Model_KERAS)
     #plot_confMatrix(Model_KERAS)
     #plot_table(Model_KERAS)
+
+
+def ComputeEvalMetrics2(true_labels, pred_labels):
+    
+    ar = [None] * 10
+
+    ar[0] = accuracy_score(true_labels, pred_labels) # Accuracy
+    ar[1] = precision_score(true_labels, pred_labels, average='micro')
+    ar[2] = recall_score(true_labels, pred_labels, average='micro')
+    ar[3] = f1_score(true_labels, pred_labels, average='micro')
+    ar[4] = precision_score(true_labels, pred_labels, average='macro')
+    ar[5] = recall_score(true_labels, pred_labels, average='macro')
+    ar[6] = f1_score(true_labels, pred_labels, average='macro')
+    ar[7] = precision_score(true_labels, pred_labels, average='weighted')
+    ar[8] = recall_score(true_labels, pred_labels, average='weighted')
+    ar[9] = f1_score(true_labels, pred_labels, average='weighted')
+
+    return ar

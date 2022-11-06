@@ -5,7 +5,7 @@ import numpy as np
 import time
 
 from lib.Kmeans_lib import k_mean_clustering
-from lib.CustomLayer_lib import update_ll_OL, update_ll_CWR
+from lib.CustomLayer_lib import update_ll
 
 
 '''Utility function to create train/test datasets from Mnist'''
@@ -43,9 +43,33 @@ class TrainSettings(object):
         self.save_output = False
         self.save_path = ''
         self.save_plots = False
+        self.save_extralog = False
         self.mode = 'UNDEFINED'
         self.datalog = [None] * 4 
+        self.extralog = [None] * 3
 
+
+'''Script to update confusion matrix'''
+def UpdateConfusion(model, pred_label, true_label, id):
+    for k in range(0,len(model.label)):
+        if(pred_label == model.std_label[k]):
+            p = np.copy(k)
+        if(true_label == model.std_label[k]):
+            t = np.copy(k)
+
+    try:
+        t
+    except NameError:
+        print("!!!VARIABLE t WAS NOT DEFINED!!!")
+        print("true label:", labels_batch[i][j])
+        print("standard labels:", model.std_label)
+
+    else: # if variable was defined can compute..
+        match id:
+            case 'model':
+                model.conf_matr[t,p] += 1  # Model confusion matrix
+            case 'clust':             
+                model.conf_matr2[t,p] += 2 # Clustering confusion matrix
 
 
 '''Script to run one epoch'''
@@ -64,6 +88,7 @@ def RunOneEpoch(model, images, labels, features_saved, labels_saved):
     err_clu = 0 # Clustering error (entire epoch)
     err_mod = 0 # Model error (entire epoch)
     pseudolabels = []
+    predictions = []
 
     if model.ll_method == 'CWR':
         model_cntr = 0 
@@ -88,39 +113,18 @@ def RunOneEpoch(model, images, labels, features_saved, labels_saved):
         # Last Layer update
         err_mod_batch = 0
         for j in range(batch_size):
-            if model.ll_method == 'OL':
-                prediction = update_ll_OL(model, features_batch[j,:], pseudolabels_batch[j])
-                
-            if model.ll_method == 'CWR':
-                
-                if(model_cntr == model.update_batch_size):
-                    prediction, found_digit = update_ll_CWR(model, features_batch[j,:], pseudolabels_batch[j], found_digit, True)
-                    model_cntr = 0
-                else:
-                    prediction, found_digit = update_ll_CWR(model, features_batch[j,:], pseudolabels_batch[j], found_digit, False)
-                model_cntr += 1
+
+            prediction = update_ll(model, features_batch[j,:], pseudolabels_batch[j])
+            predictions.append(prediction)
 
             if(prediction != labels_batch[i][j]):  
                err_mod_batch += 1
 
-            # Update confusion matrix - posso creare funzione in Custom_layer
+
+        # Update confusion matrix
             if model.settings.fill_cmtx == True:
-                for k in range(0,len(model.label)):
-                    if(prediction == model.std_label[k]):
-                        p = np.copy(k)
-                    if(labels_batch[i][j] == model.std_label[k]):
-                        t = np.copy(k)
-
-                try:
-                    t
-                except NameError:
-                    print("!!!VARIABLE t WAS NOT DEFINED!!!")
-                    print("true label:", labels_batch[i][j])
-                    print("standard labels:", model.std_label)
-
-                else: # if variable was defined can compute..
-                    model.conf_matr[t,p] += 1 
-                 
+                UpdateConfusion(model, prediction, labels_batch[i][j], 'model')
+                UpdateConfusion(model, pseudolabels_batch[j], labels_batch[i][j], 'clust')
 
         model_err_array.append(err_mod_batch)
         err_mod += err_mod_batch
@@ -133,6 +137,8 @@ def RunOneEpoch(model, images, labels, features_saved, labels_saved):
         print("Total clustering error: {:.1%} ({}/{} errors, {:.1%} accuracy)".format(err_clu/n_samples, err_clu, n_samples, 1-err_clu/n_samples))
         print("Total model error: {:.1%} ({}/{} errors, {:.1%} accuracy)".format(err_mod/n_samples, err_mod, n_samples, 1-err_mod/n_samples))
 
-    # return clust_err_array, model_err_array
     if model.settings.save_output == True:
         model.settings.datalog = list([err_clu, err_mod, clust_err_array, model_err_array])
+
+    if model.settings.save_extralog == True:
+        model.settings.extralog = list([labels, pseudolabels, predictions])
