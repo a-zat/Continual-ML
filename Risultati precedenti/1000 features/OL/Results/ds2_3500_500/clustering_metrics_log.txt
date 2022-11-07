@@ -1,0 +1,4 @@
+# Dataset: 2, n_train = 3500, n_test = 500 
+# 
+# FEATURES	; BATCH_SZ	; ACCURACY	; MIC_PREC	; MIC_RCLL	;	 MIC_F1	; MAC_PREC	; MAC_RCLL	; MAC_F1	; WGT_PREC	; WGT_RCLL	; WGT_F1
+	1000 	;	  50 	;	  0.94 	;	  0.94 	;	  0.94 	;	  0.94 	;	  0.94 	;	  0.94 	;	  0.94 	;	  0.94 	;	  0.94 	;	  0.94

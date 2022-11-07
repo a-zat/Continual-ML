@@ -1,0 +1,4 @@
+# Dataset: 2, n_train = 3500, n_test = 500 
+# 
+# FEATURES	; BATCH_SZ	; CST_ERRS	; CST_ACC	; MDL_ERRS	; MDL_ACC	;	 TIME	; CST_ERR_ARRAY	; MDL_ERR_ARRAY
+	1000 	;	  50 	;	 26 	;	 94.8% 	;	 21 	;	 95.8% 	;	1380.036	;	[1, 2, 2, 3, 5, 3, 1, 6, 1, 2]	;	[2, 1, 0, 2, 4, 3, 1, 6, 1, 1]

@@ -1,30 +1,30 @@
-import sensor, image, ustruct, nn_st
-import ulab
-from ulab import numpy as np
-from pyb import USB_VCP
-import OpenMV_myLib as myLib
-import gc
+import sensor
+import ustruct
+import nn_st
 import pyb
-import os
-import io
-import uarray
-import sys
-import lcd
+from pyb import USB_VCP
+
+#################################
+# INITIALIZE CAMERA
+
 usb = USB_VCP()
-sensor.reset()
+sensor.reset()                          # Reset and initialize the sensor.
 sensor.set_contrast(3)
 sensor.set_brightness(0)
 sensor.set_auto_gain(True)
 sensor.set_auto_exposure(True)
-sensor.set_pixformat(sensor.GRAYSCALE)
-sensor.set_framesize(sensor.QQQVGA)
-#sensor.set_framesize(sensor.QQVGA2)
-sensor.skip_frames(time = 2000)
-#lcd.init()
-net = nn_st.loadnnst('network')
-nn_input_sz = 28
+sensor.set_pixformat(sensor.GRAYSCALE)  # Set pixel format to Grayscale
+sensor.set_framesize(sensor.QQQVGA)     # Set frame size to 80x60
+sensor.skip_frames(time = 2000)         # Wait for settings take effect.
+
+#################################
+
+net = nn_st.loadnnst('network')         # [CUBE.AI] Initialize the network
+nn_input_sz = 28                        # The CNN input is 28x28
+
 led1 = pyb.LED(2)
 led2 = pyb.LED(3)
+
 counter = 0
 while(True):
 	cmd_b   = usb.recv(4, timeout=10)
