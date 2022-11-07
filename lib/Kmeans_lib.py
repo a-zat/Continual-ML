@@ -139,3 +139,83 @@ def k_mean_clustering(features_run, features_saved, labels_run, labels_saved, mo
     ComputeEvalMetrics(labels_run, pseudolabels_run, labels_init_list)
 
   return pseudolabels_run, err
+
+
+
+'''Function to compute kmean clustering on the new dataset and the saved features'''
+def k_mean_clustering2(features_run, features_saved, labels_run, labels_saved, model):
+
+  # Define initial set of features
+  labels_init_list = model.std_label
+  n_cluster = len(labels_init_list)
+
+  # Extract from the saved features the labels that we need
+  features_saved_init = []
+  labels_saved_init = []
+  # Extract features of digits considered in labels_init_list
+  for i in range(0, len(features_saved)):
+      if labels_saved[i] in labels_init_list:
+        features_saved_init.append(features_saved[i,:])
+        labels_saved_init.append(labels_saved[i])
+  
+  # Convert list to nparray
+  features = np.array(features_saved_init)
+  features = features.astype('float32')
+  labels_features = np.array(labels_saved_init)  
+
+  # Creo un dizionario per linkare le features (salvate) al cluster di appartenenza
+  # creates dictionary using dictionary comprehension -> list [] is mutable object
+  features_saved_dict = { key : [] for key in labels_init_list}
+
+  for i in range(0, len(features_saved_init)):
+    lbl = labels_saved_init[i]
+    features_saved_dict[lbl].append(features_saved_init[i])
+
+  # Converto list-of-arrays in 2D array
+  cluster_mean = []
+  for key in labels_init_list:
+    features_saved_dict[key] = np.array(features_saved_dict[key])
+    cluster_mean.append(np.mean(features_saved_dict[key], axis=0))
+
+  cluster_mean = np.array(cluster_mean)
+
+  # Create KMeans
+  kmeans = KMeans(n_cluster)
+  kmeans.fit(cluster_mean)
+  map_clu2lbl, map_lbl2clu = cluster_to_label(kmeans.labels_, labels_init_list, list(range(0,n_cluster)), model.std_label)
+
+  # print(kmeans.predict(cluster_mean))
+  # print("Map cluster to label:", map_clu2lbl)
+
+  # Passo una nuova immagine al Kmeans. Ne determino il cluster e ne calcolo la pseudolabel
+  errs = 0
+  n_samples = len(labels_run)
+  cluster_label = np.zeros(n_samples, dtype=int)
+  pseudolabels = []
+  
+  for i in range(0, n_samples):
+      labels_new = labels_run[i]
+      features_new = np.array(features_run[i,:], dtype = type(features_saved[0,0]))
+
+      # Find the cluster for the new features
+      cluster_label[i] = kmeans.predict(features_new.reshape(1, -1))
+      pseudolabel = map_clu2lbl[cluster_label[i]]
+      pseudolabels.append(pseudolabel)
+
+      # Update the cluster center
+      l_rate = 0.02
+      kmeans.cluster_centers_[cluster_label[i],:] = (kmeans.cluster_centers_[cluster_label[i],:] + features_new * l_rate)/(1 + l_rate)
+      # print(cluster_label[i])
+
+      if labels_new != pseudolabel:
+          errs += 1
+  
+  # Evaluation metrics
+  if model.settings.verbosity == 'DEBUG':
+    ComputeClusteringMetrics(features, pseudolabels, kmeans)
+    ComputeEvalMetrics(labels_run, pseudolabels, labels_init_list)
+
+
+  print("Errors:", errs, "Accuracy: {:.1%}".format(1- errs/n_samples))
+
+  return pseudolabels, errs
