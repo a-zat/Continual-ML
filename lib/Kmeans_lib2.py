@@ -38,7 +38,7 @@ def create_kmean(features_saved, labels_saved, model):
   cluster_mean = []
   for key in labels_init_list:
     features_saved_dict[key] = np.array(features_saved_dict[key])
-    cluster_mean.append(np.mean(features_saved_dict[key], axis=0))
+    cluster_mean.append(np.mean(features_saved_dict[key], axis=0)) # centroide
 
   cluster_mean = np.array(cluster_mean)
 
@@ -77,7 +77,6 @@ def update_kmean(features_run, labels_run, kmeans, map_clu2lbl, model):
   if model.settings.verbosity == 'DEBUG':
     ComputeClusteringMetrics(features_run, pseudolabels, kmeans)
     # ComputeEvalMetrics(labels_run, pseudolabels, labels_init_list)
-
 
   # print("Errors:", errs, "Accuracy: {:.1%}".format(1- errs/n_samples))
 
