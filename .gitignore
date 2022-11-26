@@ -35,6 +35,8 @@
 .Trashes
 ehthumbs.db
 Thumbs.db
+__pycache__
+lib/__pycache__
 
 # Folders #
 ###################
