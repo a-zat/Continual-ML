@@ -75,6 +75,7 @@ def cluster_to_label(clusters_features, labels_features, cluster_list, labels_in
 
 
 '''Function to compute kmean clustering on the new dataset and the saved features'''
+'''Versione che ricrea i cluster ad ogni batch'''
 def k_mean_clustering(features_run, features_saved, labels_run, labels_saved, model):
 
   # Define initial set of features
@@ -143,6 +144,7 @@ def k_mean_clustering(features_run, features_saved, labels_run, labels_saved, mo
 
 
 '''Function to compute kmean clustering on the new dataset and the saved features'''
+'''Versione che ricrea i cluster ad ogni batch, però li aggiorna'''
 def k_mean_clustering2(features_run, features_saved, labels_run, labels_saved, model):
 
   # Define initial set of features

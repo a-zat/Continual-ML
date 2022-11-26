@@ -4,7 +4,8 @@ import random
 import numpy as np
 import time
 
-from lib.Kmeans_lib import k_mean_clustering2
+from lib.Kmeans_lib import k_mean_clustering2   # Versione che aggiorna i cluster
+from lib.Kmeans_lib import k_mean_clustering    # Versione che ricrea i cluster
 from lib.CustomLayer_lib import update_ll
 
 
@@ -177,7 +178,7 @@ def RunOneEpoch(model, images, labels, features_saved, labels_saved):
 
         # Kmean clustering
         start2 = time.time()
-        pseudolabels_batch, err_clu_batch = k_mean_clustering2(features_batch, features_saved, labels_batch[i], labels_saved, model)
+        pseudolabels_batch, err_clu_batch = k_mean_clustering(features_batch, features_saved, labels_batch[i], labels_saved, model)
         end2 = time.time()
         pseudolabels.extend(pseudolabels_batch)
         err_clu += err_clu_batch
@@ -192,7 +193,6 @@ def RunOneEpoch(model, images, labels, features_saved, labels_saved):
 
             if(prediction != labels_batch[i][j]):  
                err_mod_batch += 1
-
 
         # Update confusion matrix
             if model.settings.fill_cmtx == True:
