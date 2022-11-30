@@ -1,4 +1,4 @@
-# Semi-supervised learning
+# Semi-supervised and unsupervised Continual Machine Learning
 
 ## General Information
 Code developed and tested on Visual Studio Code for macOS.
@@ -23,4 +23,4 @@ The dependencies can be installed running `pip install -r requirements.txt`.
 ## Main scripts
 - `RunActive` script to run the active model (clustering + OL)
 - `Frozen_model` script to run the frozen model (model and labeled dataset creation)
-- `Clustering4OL_implementation` script which presents three methods to implement k-mean clustering with coherent cathegories over time
+- `Clustering4OL_implementation` script which presents three methods to implement k-mean clustering for semi-supervised or unsupervised learning
