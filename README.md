@@ -4,6 +4,8 @@
 Code developed and tested on Visual Studio Code for macOS.
 The dependencies can be installed running `pip install -r requirements.txt`.
 
+The application on-edge was tested on an OpenMV H7+ running MicroPython.
+
 ### Setting the environment on VS Code
 1. Open the project in VS Code
 2. Create an environment for Python 3: `python3 -m venv venv`
